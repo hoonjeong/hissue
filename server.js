@@ -4,8 +4,8 @@ const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
-const cron = require('node-cron');
-const collectCoupangProducts = require('./scripts/collect-coupang-products');
+// const cron = require('node-cron'); // 시스템 crontab 사용으로 비활성화
+// const collectCoupangProducts = require('./scripts/collect-coupang-products'); // 시스템 crontab 사용으로 비활성화
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -441,7 +441,11 @@ Sitemap: http://${req.headers.host}/sitemap.xml`;
 app.listen(PORT, () => {
     console.log(`서버가 포트 ${PORT}에서 실행 중입니다`);
     
-    // 쿠팡 상품 수집 스케줄러 시작
+    // 쿠팡 상품 수집 스케줄러 - 시스템 crontab으로 이동
+    // crontab -e에서 다음 라인 추가:
+    // 0 6,18 * * * cd /path/to/hissue && npm run collect:coupang >> logs/coupang.log 2>&1
+    
+    /* node-cron 스케줄러 비활성화 (시스템 crontab 사용)
     console.log('쿠팡 상품 수집 스케줄러 시작');
     
     // 매일 오전 6시와 오후 6시에 실행
@@ -465,4 +469,5 @@ app.listen(PORT, () => {
     })();
     
     console.log('쿠팡 스케줄러가 활성화되었습니다. 매일 오전 6시와 오후 6시에 수집이 실행됩니다.');
+    */
 });
