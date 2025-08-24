@@ -39,23 +39,6 @@ header {
 .logo-area {
     display: flex;
     align-items: center;
-    gap: 30px;
-}
-
-.logo-area h1 {
-    font-size: 24px;
-    font-weight: normal;
-    margin: 0;
-}
-
-.logo-area h1 a {
-    text-decoration: none;
-    color: inherit;
-}
-
-.logo-main {
-    color: #000;
-    font-weight: 700;
 }
 
 .nav-menu {
@@ -67,9 +50,9 @@ header {
 .nav-item {
     color: #666;
     text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    padding: 6px 12px;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 8px 16px;
     border-radius: 20px;
     transition: all 0.3s;
 }
