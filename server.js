@@ -244,6 +244,51 @@ app.get('/admin/logout', (req, res) => {
     res.redirect('/');
 });
 
+app.post('/admin/force-update', async (req, res) => {
+    if (!req.session.isAdmin) {
+        return res.status(401).json({ success: false, error: '권한이 없습니다' });
+    }
+    
+    try {
+        // collect-rss.js 스크립트를 실행
+        const { exec } = require('child_process');
+        const util = require('util');
+        const execPromise = util.promisify(exec);
+        
+        console.log('강제 업데이트 시작...');
+        const { stdout, stderr } = await execPromise('node scripts/collect-rss.js', {
+            cwd: __dirname,
+            timeout: 300000 // 5분 타임아웃
+        });
+        
+        if (stderr) {
+            console.error('업데이트 에러:', stderr);
+        }
+        
+        console.log('업데이트 결과:', stdout);
+        
+        // 결과에서 숫자 추출
+        const newMatch = stdout.match(/새로운 콘텐츠 (\d+)개/);
+        const updateMatch = stdout.match(/업데이트된 콘텐츠 (\d+)개/);
+        
+        const newCount = newMatch ? parseInt(newMatch[1]) : 0;
+        const updatedCount = updateMatch ? parseInt(updateMatch[1]) : 0;
+        
+        res.json({ 
+            success: true, 
+            newCount: newCount,
+            updatedCount: updatedCount,
+            message: stdout 
+        });
+    } catch (error) {
+        console.error('강제 업데이트 실패:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message || '업데이트 실행 중 오류가 발생했습니다' 
+        });
+    }
+});
+
 app.get('/sitemap.xml', (req, res) => {
     db.all(`SELECT id, insert_time FROM HS_CONTENT_TB ORDER BY insert_time DESC`, (err, rows) => {
         if (err) {

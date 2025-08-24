@@ -13,11 +13,19 @@
             <a href="/admin/logout" class="logout-btn">로그아웃</a>
         </header>
 
-        <div class="admin-search">
-            <form action="/admin/list" method="get">
-                <input type="text" name="search" value="<%= search %>" placeholder="제목 검색">
-                <button type="submit">검색</button>
-            </form>
+        <div class="admin-controls">
+            <div class="admin-search">
+                <form action="/admin/list" method="get">
+                    <input type="text" name="search" value="<%= search %>" placeholder="제목 검색">
+                    <button type="submit">검색</button>
+                </form>
+            </div>
+            <div class="admin-actions">
+                <button id="forceUpdateBtn" class="btn-update" onclick="forceUpdate()">
+                    <span id="updateText">강제 업데이트 실행</span>
+                    <span id="updateLoader" style="display:none;">업데이트 중...</span>
+                </button>
+            </div>
         </div>
 
         <table class="admin-table">
@@ -47,5 +55,43 @@
             </tbody>
         </table>
     </div>
+    
+    <script>
+        async function forceUpdate() {
+            const btn = document.getElementById('forceUpdateBtn');
+            const updateText = document.getElementById('updateText');
+            const updateLoader = document.getElementById('updateLoader');
+            
+            if (confirm('정말로 강제 업데이트를 실행하시겠습니까?\n이 작업은 시간이 걸릴 수 있습니다.')) {
+                btn.disabled = true;
+                updateText.style.display = 'none';
+                updateLoader.style.display = 'inline';
+                
+                try {
+                    const response = await fetch('/admin/force-update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert(`업데이트가 완료되었습니다!\n새로운 콘텐츠: ${result.newCount}개\n업데이트된 콘텐츠: ${result.updatedCount}개`);
+                        location.reload();
+                    } else {
+                        alert('업데이트 중 오류가 발생했습니다: ' + (result.error || '알 수 없는 오류'));
+                    }
+                } catch (error) {
+                    alert('업데이트 요청 중 오류가 발생했습니다: ' + error.message);
+                } finally {
+                    btn.disabled = false;
+                    updateText.style.display = 'inline';
+                    updateLoader.style.display = 'none';
+                }
+            }
+        }
+    </script>
 </body>
 </html>

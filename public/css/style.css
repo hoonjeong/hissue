@@ -383,8 +383,15 @@ footer a {
     border-radius: 4px;
 }
 
-.admin-search {
+.admin-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 20px;
+}
+
+.admin-search {
+    display: inline-block;
 }
 
 .admin-search input {
@@ -392,6 +399,31 @@ footer a {
     border: 1px solid #ddd;
     border-radius: 4px;
     width: 300px;
+}
+
+.admin-actions {
+    display: inline-block;
+}
+
+.btn-update {
+    padding: 10px 25px;
+    background: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.btn-update:hover {
+    background: #229954;
+}
+
+.btn-update:disabled {
+    background: #95a5a6;
+    cursor: not-allowed;
 }
 
 .admin-table {
