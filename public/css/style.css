@@ -38,13 +38,22 @@ header {
 
 .logo-area h1 {
     font-size: 20px;
-    color: #2c3e50;
-    font-weight: 600;
+    font-weight: normal;
 }
 
 .logo-area h1 a {
     text-decoration: none;
     color: inherit;
+}
+
+.logo-prefix {
+    color: #7f8c8d;
+    font-weight: 400;
+}
+
+.logo-main {
+    color: #000;
+    font-weight: 700;
 }
 
 .search-area {
@@ -101,7 +110,15 @@ header {
     }
     
     .logo-area h1 {
-        font-size: 18px;
+        font-size: 16px;
+    }
+    
+    .logo-prefix {
+        font-size: 14px;
+    }
+    
+    .logo-main {
+        font-size: 16px;
     }
     
     .search-area {
@@ -137,18 +154,21 @@ main {
 }
 
 .sort-buttons a {
-    padding: 8px 16px;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    color: #7f8c8d;
     text-decoration: none;
-    color: #333;
+    font-size: 14px;
+    margin-right: 15px;
+    transition: color 0.2s;
+}
+
+.sort-buttons a:hover {
+    color: #3498db;
+    text-decoration: underline;
 }
 
 .sort-buttons a.active {
-    background: #3498db;
-    color: white;
-    border-color: #3498db;
+    color: #3498db;
+    font-weight: 600;
 }
 
 .last-update {
@@ -193,14 +213,13 @@ main {
 }
 
 .content-info {
-    padding: 8px 15px;
+    padding: 0 15px 10px;
     font-size: 12px;
     color: #95a5a6;
-    background: #f8f9fa;
 }
 
 .content-item h2 {
-    padding: 15px;
+    padding: 15px 15px 10px;
     font-size: 18px;
     line-height: 1.4;
 }

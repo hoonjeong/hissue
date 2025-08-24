@@ -36,7 +36,7 @@
     <header>
         <div class="header-container">
             <div class="logo-area">
-                <h1><a href="/">최신 이슈 브리핑 서비스 Hi~ Issue!</a></h1>
+                <h1><a href="/"><span class="logo-prefix">AI 기반 이슈 브리핑 서비스</span> <span class="logo-main">Hi Issue!</span></a></h1>
             </div>
             <div class="search-area">
                 <form action="/" method="get" class="search-form">
@@ -66,6 +66,13 @@
                     <% } else { %>
                         <div class="no-image">이미지 없음</div>
                     <% } %>
+                    <h2>
+                        <% if (search) { %>
+                            <%- content.subject.replace(new RegExp('(' + search + ')', 'gi'), '<strong>$1</strong>') %>
+                        <% } else { %>
+                            <%= content.subject %>
+                        <% } %>
+                    </h2>
                     <div class="content-info">
                         <% 
                         const insertDate = new Date(content.insert_time);
@@ -78,13 +85,6 @@
                         %>
                         작성일: <%= formattedDate %> 조회수: <%= content.score || 0 %>
                     </div>
-                    <h2>
-                        <% if (search) { %>
-                            <%- content.subject.replace(new RegExp('(' + search + ')', 'gi'), '<strong>$1</strong>') %>
-                        <% } else { %>
-                            <%= content.subject %>
-                        <% } %>
-                    </h2>
                     <p class="content-preview">
                         <% const plainText = content.content.replace(/<[^>]*>/g, '').substring(0, 150); %>
                         <% if (search) { %>
