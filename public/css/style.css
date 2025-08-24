@@ -137,12 +137,12 @@ header {
 
 main {
     max-width: 1200px;
-    margin: 30px auto;
+    margin: 15px auto 30px;
     padding: 0 20px;
 }
 
 .content-controls {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     text-align: right;
 }
 
