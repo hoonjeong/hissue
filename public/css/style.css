@@ -56,6 +56,28 @@ header {
     font-weight: 700;
 }
 
+.nav-area {
+    display: flex;
+    align-items: center;
+}
+
+.nav-link {
+    padding: 8px 16px;
+    background: #0073e9;
+    color: white;
+    text-decoration: none;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.nav-link:hover {
+    background: #005bb5;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,115,233,0.3);
+}
+
 .search-area {
     display: flex;
     align-items: center;

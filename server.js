@@ -4,6 +4,8 @@ const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
+const cron = require('node-cron');
+const collectCoupangProducts = require('./scripts/collect-coupang-products');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -198,6 +200,113 @@ app.get('/admin/list', (req, res) => {
     });
 });
 
+// 쿠팡 베스트 상품 리스트 페이지
+app.get('/coupang', (req, res) => {
+    const sort = req.query.sort || 'price_desc';
+    const search = req.query.search || '';
+    const isRocket = req.query.rocket === 'true';
+    const isFreeShipping = req.query.free === 'true';
+    
+    // 최신 update_number 조회
+    db.get('SELECT MAX(update_number) as max_num FROM CP_PRODUCT_TB', (err, row) => {
+        if (err || !row || row.max_num === null) {
+            return res.render('coupang-list', { 
+                products: [], 
+                search, 
+                sort, 
+                isRocket, 
+                isFreeShipping 
+            });
+        }
+        
+        const latestUpdateNumber = row.max_num;
+        
+        let query = `SELECT * FROM CP_PRODUCT_TB WHERE update_number = ?`;
+        let params = [latestUpdateNumber];
+        
+        if (search) {
+            query += ` AND productName LIKE ?`;
+            params.push(`%${search}%`);
+        }
+        
+        if (isRocket) {
+            query += ` AND isRocket = 1`;
+        }
+        
+        if (isFreeShipping) {
+            query += ` AND isFreeShipping = 1`;
+        }
+        
+        // 정렬 조건
+        switch(sort) {
+            case 'price_asc':
+                query += ` ORDER BY productPrice ASC`;
+                break;
+            case 'price_desc':
+                query += ` ORDER BY productPrice DESC`;
+                break;
+            case 'name':
+                query += ` ORDER BY productName ASC`;
+                break;
+            case 'gap':
+                query += ` ORDER BY priceGap DESC`;
+                break;
+            default:
+                query += ` ORDER BY productPrice DESC`;
+        }
+        
+        db.all(query, params, (err, products) => {
+            if (err) {
+                console.error('상품 조회 오류:', err);
+                products = [];
+            }
+            
+            res.render('coupang-list', { 
+                products: products || [], 
+                search, 
+                sort, 
+                isRocket, 
+                isFreeShipping 
+            });
+        });
+    });
+});
+
+// 쿠팡 상품 상세 페이지
+app.get('/coupang/product/:productId', (req, res) => {
+    const productId = req.params.productId;
+    
+    // 최신 상품 정보 조회
+    db.get(`
+        SELECT * FROM CP_PRODUCT_TB 
+        WHERE productId = ? 
+        ORDER BY update_number DESC 
+        LIMIT 1
+    `, [productId], (err, product) => {
+        if (err || !product) {
+            return res.status(404).send('상품을 찾을 수 없습니다');
+        }
+        
+        // 가격 변동 이력 조회 (최근 10개)
+        db.all(`
+            SELECT productPrice, insert_time 
+            FROM CP_PRODUCT_TB 
+            WHERE productId = ? 
+            ORDER BY update_number DESC 
+            LIMIT 10
+        `, [productId], (err, priceHistory) => {
+            if (err) {
+                priceHistory = [];
+            }
+            
+            res.render('coupang-detail', { 
+                product, 
+                priceHistory: priceHistory || []
+            });
+        });
+    });
+});
+
 app.get('/admin/edit/:id', (req, res) => {
     if (!req.session.isAdmin) {
         return res.redirect('/admin');
@@ -331,4 +440,29 @@ Sitemap: http://${req.headers.host}/sitemap.xml`;
 
 app.listen(PORT, () => {
     console.log(`서버가 포트 ${PORT}에서 실행 중입니다`);
+    
+    // 쿠팡 상품 수집 스케줄러 시작
+    console.log('쿠팡 상품 수집 스케줄러 시작');
+    
+    // 매일 오전 6시와 오후 6시에 실행
+    cron.schedule('0 6,18 * * *', async () => {
+        console.log(`[${new Date().toISOString()}] 스케줄된 쿠팡 수집 작업 시작`);
+        try {
+            await collectCoupangProducts();
+        } catch (error) {
+            console.error('스케줄된 쿠팡 수집 작업 실패:', error);
+        }
+    });
+    
+    // 서버 시작 시 즉시 한 번 실행
+    (async () => {
+        console.log('서버 시작 시 초기 쿠팡 수집 실행');
+        try {
+            await collectCoupangProducts();
+        } catch (error) {
+            console.error('초기 쿠팡 수집 실패:', error);
+        }
+    })();
+    
+    console.log('쿠팡 스케줄러가 활성화되었습니다. 매일 오전 6시와 오후 6시에 수집이 실행됩니다.');
 });
