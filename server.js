@@ -131,6 +131,19 @@ app.get('/content/:id', (req, res) => {
     }
 });
 
+// Sitemap 동적 생성
+app.get('/sitemap.xml', async (req, res) => {
+    try {
+        const { generateSitemap } = require('./scripts/generate-sitemap');
+        const xml = await generateSitemap();
+        res.header('Content-Type', 'application/xml');
+        res.send(xml);
+    } catch (err) {
+        console.error('Sitemap generation error:', err);
+        res.status(500).send('Error generating sitemap');
+    }
+});
+
 app.get('/admin', (req, res) => {
     if (req.session.isAdmin) {
         return res.redirect('/admin/list');

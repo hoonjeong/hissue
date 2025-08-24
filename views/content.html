@@ -8,9 +8,29 @@
     <meta property="og:title" content="<%= content.subject %>">
     <meta property="og:description" content="<%= content.content.replace(/<[^>]*>/g, '').substring(0, 150) %>">
     <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hissue.kr/content/<%= content.id %>">
+    <meta property="og:site_name" content="HI! ISSUE!">
+    <meta property="article:published_time" content="<%= content.insert_time %>">
+    <% if (content.update_time) { %>
+    <meta property="article:modified_time" content="<%= content.update_time %>">
+    <% } %>
     <% if (content.news_item_picture_1) { %>
     <meta property="og:image" content="<%= content.news_item_picture_1 %>">
     <% } %>
+    
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<%= content.subject %>">
+    <meta name="twitter:description" content="<%= content.content.replace(/<[^>]*>/g, '').substring(0, 150) %>">
+    <% if (content.news_item_picture_1) { %>
+    <meta name="twitter:image" content="<%= content.news_item_picture_1 %>">
+    <% } %>
+    
+    <!-- 추가 SEO 메타 태그 -->
+    <meta name="author" content="HI! ISSUE!">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://hissue.kr/content/<%= content.id %>">
+    
     <title><%= content.subject %> - HI! ISSUE!</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>

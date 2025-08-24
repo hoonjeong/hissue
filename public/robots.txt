@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# 크롤링 허용
+Allow: /content/
+
+# 관리자 페이지 차단
+Disallow: /admin/
+Disallow: /admin
+
+# 크롤링 딜레이 (초)
+Crawl-delay: 1
+
+# 사이트맵 위치
+Sitemap: http://hissue.kr/sitemap.xml
+Sitemap: https://hissue.kr/sitemap.xml
