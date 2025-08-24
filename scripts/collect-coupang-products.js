@@ -33,7 +33,7 @@ async function processProducts(products) {
                 const maxUpdateNumber = await new Promise((resolve, reject) => {
                     db.get('SELECT MAX(update_number) as max_num FROM CP_PRODUCT_TB', (err, row) => {
                         if (err) reject(err);
-                        else resolve(row?.max_num || -1);
+                        else resolve(row?.max_num !== null ? row.max_num : -1);
                     });
                 });
                 
@@ -92,6 +92,9 @@ async function processProduct(product, updateNumber) {
                         let priceGap = 0;
                         if (prevRow && prevRow.productPrice) {
                             priceGap = ((product.productPrice - prevRow.productPrice) / prevRow.productPrice) * 100;
+                            if (priceGap !== 0) {
+                                console.log(`가격 변동: ${product.productName.substring(0,30)} - 이전: ${prevRow.productPrice}, 현재: ${product.productPrice}, 변동율: ${priceGap.toFixed(2)}%`);
+                            }
                         }
                         
                         if (existingRow) {

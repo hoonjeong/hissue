@@ -36,9 +36,16 @@ header {
     gap: 15px;
 }
 
+.logo-area {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
 .logo-area h1 {
-    font-size: 20px;
+    font-size: 24px;
     font-weight: normal;
+    margin: 0;
 }
 
 .logo-area h1 a {
@@ -46,36 +53,35 @@ header {
     color: inherit;
 }
 
-.logo-prefix {
-    color: #7f8c8d;
-    font-weight: 400;
-}
-
 .logo-main {
     color: #000;
     font-weight: 700;
 }
 
-.nav-area {
+.nav-menu {
     display: flex;
     align-items: center;
+    gap: 20px;
 }
 
-.nav-link {
-    padding: 8px 16px;
-    background: #0073e9;
-    color: white;
+.nav-item {
+    color: #666;
     text-decoration: none;
-    border-radius: 20px;
     font-size: 14px;
     font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 20px;
     transition: all 0.3s;
 }
 
-.nav-link:hover {
-    background: #005bb5;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0,115,233,0.3);
+.nav-item:hover {
+    background: #f0f0f0;
+    color: #111;
+}
+
+.nav-item.active {
+    background: #111;
+    color: white;
 }
 
 .search-area {
