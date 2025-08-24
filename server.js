@@ -70,13 +70,28 @@ app.get('/', async (req, res) => {
                 return res.status(500).send('서버 오류');
             }
             
-            const totalPages = Math.ceil(countRow.total / limit);
-            res.render('index', { 
-                contents: rows, 
-                currentPage: page, 
-                totalPages: totalPages,
-                search: search,
-                sort: req.query.sort || 'recent'
+            // 최신 콘텐츠의 시간 가져오기
+            db.get(`SELECT insert_time FROM HS_CONTENT_TB ORDER BY insert_time DESC LIMIT 1`, (err, latestRow) => {
+                let lastUpdate = '';
+                if (!err && latestRow && latestRow.insert_time) {
+                    const date = new Date(latestRow.insert_time);
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    lastUpdate = `${year}.${month}.${day} ${hours}:${minutes}`;
+                }
+                
+                const totalPages = Math.ceil(countRow.total / limit);
+                res.render('index', { 
+                    contents: rows, 
+                    currentPage: page, 
+                    totalPages: totalPages,
+                    search: search,
+                    sort: req.query.sort || 'recent',
+                    lastUpdate: lastUpdate
+                });
             });
         });
     });

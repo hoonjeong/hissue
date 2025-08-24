@@ -59,7 +59,16 @@
         <article class="content-detail">
             <h1><%= content.subject %></h1>
             <div class="content-meta">
-                <span class="date"><%= new Date(content.insert_time).toLocaleDateString('ko-KR') %></span>
+                <% 
+                const insertDate = new Date(content.insert_time);
+                const year = insertDate.getFullYear();
+                const month = String(insertDate.getMonth() + 1).padStart(2, '0');
+                const day = String(insertDate.getDate()).padStart(2, '0');
+                const hours = String(insertDate.getHours()).padStart(2, '0');
+                const minutes = String(insertDate.getMinutes()).padStart(2, '0');
+                const formattedDate = `${year}.${month}.${day} ${hours}:${minutes}`;
+                %>
+                <span class="date">작성일: <%= formattedDate %></span>
                 <span class="views">조회수: <%= content.score %></span>
             </div>
             

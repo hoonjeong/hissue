@@ -54,6 +54,7 @@
             <div class="sort-buttons">
                 <a href="/?sort=recent<%= search ? '&search=' + search : '' %>" class="<%= sort === 'recent' ? 'active' : '' %>">최신순</a>
                 <a href="/?sort=score<%= search ? '&search=' + search : '' %>" class="<%= sort === 'score' ? 'active' : '' %>">조회순</a>
+                <span class="last-update">최종 업데이트: <%= lastUpdate %></span>
             </div>
         </div>
 
@@ -65,6 +66,18 @@
                     <% } else { %>
                         <div class="no-image">이미지 없음</div>
                     <% } %>
+                    <div class="content-info">
+                        <% 
+                        const insertDate = new Date(content.insert_time);
+                        const year = String(insertDate.getFullYear()).slice(-2);
+                        const month = String(insertDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(insertDate.getDate()).padStart(2, '0');
+                        const hours = String(insertDate.getHours()).padStart(2, '0');
+                        const minutes = String(insertDate.getMinutes()).padStart(2, '0');
+                        const formattedDate = `${year}.${month}.${day} ${hours}:${minutes}`;
+                        %>
+                        작성일: <%= formattedDate %> 조회수: <%= content.score || 0 %>
+                    </div>
                     <h2>
                         <% if (search) { %>
                             <%- content.subject.replace(new RegExp('(' + search + ')', 'gi'), '<strong>$1</strong>') %>

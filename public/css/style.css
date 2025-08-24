@@ -15,9 +15,14 @@ header {
     background: white;
     border-bottom: 1px solid #e0e0e0;
     padding: 20px 0;
-    position: sticky;
-    top: 0;
     z-index: 100;
+}
+
+@media (min-width: 768px) {
+    header {
+        position: sticky;
+        top: 0;
+    }
 }
 
 .header-container {
@@ -86,9 +91,15 @@ main {
     text-align: right;
 }
 
+.sort-buttons {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+}
+
 .sort-buttons a {
     padding: 8px 16px;
-    margin-left: 10px;
     background: white;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -100,6 +111,12 @@ main {
     background: #3498db;
     color: white;
     border-color: #3498db;
+}
+
+.last-update {
+    margin-left: 15px;
+    color: #7f8c8d;
+    font-size: 14px;
 }
 
 .content-list {
@@ -135,6 +152,13 @@ main {
     justify-content: center;
     background: #ecf0f1;
     color: #95a5a6;
+}
+
+.content-info {
+    padding: 8px 15px;
+    font-size: 12px;
+    color: #95a5a6;
+    background: #f8f9fa;
 }
 
 .content-item h2 {
