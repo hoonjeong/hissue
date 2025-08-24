@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="<%= content.subject %> - 하이 이슈">
+    <meta name="description" content="<%= content.subject %> - HISSUE">
     <meta name="keywords" content="<%= content.keyword %>, 최신 이슈, 트렌드, 뉴스">
     <meta property="og:title" content="<%= content.subject %>">
     <meta property="og:description" content="<%= content.content.replace(/<[^>]*>/g, '').substring(0, 150) %>">
@@ -11,14 +11,14 @@
     <% if (content.news_item_picture_1) { %>
     <meta property="og:image" content="<%= content.news_item_picture_1 %>">
     <% } %>
-    <title><%= content.subject %> - 하이 이슈</title>
+    <title><%= content.subject %> - HISSUE</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
     <header>
         <div class="header-container">
             <div class="logo-area">
-                <h1><a href="/">하이 이슈</a></h1>
+                <h1><a href="/">HISSUE</a></h1>
                 <p class="subtitle">최근 이슈를 AI가 자세하게 설명해드립니다</p>
             </div>
             <div class="search-area">

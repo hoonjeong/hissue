@@ -1,7 +1,7 @@
 {
   "name": "hissue",
   "version": "1.0.0",
-  "description": "최근 이슈를 AI가 자세하게 설명해드립니다. 하이 이슈",
+  "description": "최근 이슈를 AI가 자세하게 설명해드립니다. HISSUE",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
