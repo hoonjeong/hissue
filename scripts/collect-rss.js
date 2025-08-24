@@ -77,14 +77,40 @@ async function generateContent(keyword, titles) {
         });
 
         const generatedText = response.data.candidates[0].content.parts[0].text;
+        
+        // JSON 추출 (더 안전한 방법)
         const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-            return { 
-                json: JSON.parse(jsonMatch[0]), 
-                prompt: prompt 
-            };
+            try {
+                // 문제가 되는 문자 정리
+                let cleanedJson = jsonMatch[0]
+                    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // 제어 문자 제거
+                    .replace(/\r\n/g, '\\n') // 줄바꿈 처리
+                    .replace(/\n/g, '\\n')
+                    .replace(/\t/g, '\\t');
+                
+                const parsed = JSON.parse(cleanedJson);
+                return { 
+                    json: parsed, 
+                    prompt: prompt 
+                };
+            } catch (parseError) {
+                console.error('JSON 파싱 오류:', parseError);
+                console.error('원본 텍스트:', generatedText);
+                // 기본 구조 반환
+                return {
+                    json: {
+                        title: titles[0] || "제목",
+                        summary: "AI 요약 생성 실패",
+                        sections: [
+                            { subtitle: "내용", content: "콘텐츠 생성 중 오류가 발생했습니다." }
+                        ]
+                    },
+                    prompt: prompt
+                };
+            }
         }
-        throw new Error('JSON 형식 파싱 실패');
+        throw new Error('JSON 형식을 찾을 수 없음');
     } catch (error) {
         console.error('AI 콘텐츠 생성 실패:', error);
         return null;
