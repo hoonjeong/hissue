@@ -1,7 +1,7 @@
 {
-  "name": "hissue",
+  "name": "hi-issue",
   "version": "1.0.0",
-  "description": "최근 이슈를 AI가 자세하게 설명해드립니다. HISSUE",
+  "description": "이슈 브리핑 서비스 HI! ISSUE! - AI가 최신 이슈를 자세하게 설명해드립니다",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
