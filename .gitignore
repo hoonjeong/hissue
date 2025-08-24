@@ -1,0 +1,63 @@
+# Node modules
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+
+# API Keys and Secrets
+*.key
+*.pem
+secrets/
+config/secrets/
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+database/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build outputs
+dist/
+build/
+out/
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# AWS credentials
+.aws/
+aws-config.json
+aws-credentials.json
+
+# Deployment specific
+deploy-config.json
+deployment-secrets/
+
+# Backup files
+*.bak
+*.backup
+
+# Cache
+.cache/
+*.cache

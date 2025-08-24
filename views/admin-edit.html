@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>콘텐츠 수정 - 관리자</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1>콘텐츠 수정</h1>
+            <a href="/admin/logout" class="logout-btn">로그아웃</a>
+        </header>
+
+        <form action="/admin/update/<%= content.id %>" method="post" class="admin-form">
+            <div class="form-group">
+                <label>프롬프트</label>
+                <textarea readonly><%= content.prompt %></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="subject">제목</label>
+                <input type="text" id="subject" name="subject" value="<%= content.subject %>" required>
+            </div>
+
+            <div class="form-group">
+                <label for="content">내용</label>
+                <textarea id="content" name="content" rows="20" required><%= content.content %></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-save">수정</button>
+                <form action="/admin/delete/<%= content.id %>" method="post" style="display:inline;" 
+                      onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                    <button type="submit" class="btn-delete">삭제</button>
+                </form>
+                <a href="/admin/list" class="btn-list">목록보기</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

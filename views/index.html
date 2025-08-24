@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="최근 이슈를 AI가 자세하게 설명해드립니다. 하이 이슈 - 구글 트렌드 기반 실시간 이슈 분석">
+    <meta name="keywords" content="최신 이슈, 트렌드, 뉴스, AI 분석, 하이 이슈">
+    <meta property="og:title" content="하이 이슈 - 최근 이슈를 AI가 자세하게 설명">
+    <meta property="og:description" content="구글 트렌드 기반 실시간 이슈를 AI가 쉽고 자세하게 설명해드립니다">
+    <meta property="og:type" content="website">
+    <title>하이 이슈 - 최근 이슈를 AI가 자세하게 설명해드립니다</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div class="logo-area">
+                <h1>하이 이슈</h1>
+                <p class="subtitle">최근 이슈를 AI가 자세하게 설명해드립니다</p>
+            </div>
+            <div class="search-area">
+                <form action="/" method="get">
+                    <label for="search">이슈검색</label>
+                    <input type="text" id="search" name="search" value="<%= search %>" placeholder="검색어를 입력하세요">
+                    <button type="submit">검색</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="content-controls">
+            <div class="sort-buttons">
+                <a href="/?sort=recent<%= search ? '&search=' + search : '' %>" class="<%= sort === 'recent' ? 'active' : '' %>">최신순</a>
+                <a href="/?sort=score<%= search ? '&search=' + search : '' %>" class="<%= sort === 'score' ? 'active' : '' %>">조회순</a>
+            </div>
+        </div>
+
+        <div class="content-list">
+            <% contents.forEach(function(content) { %>
+                <article class="content-item" onclick="location.href='/content/<%= content.id %>'">
+                    <% if (content.news_item_picture_1) { %>
+                        <img src="<%= content.news_item_picture_1 %>" alt="<%= content.subject %>" class="thumbnail">
+                    <% } else { %>
+                        <div class="no-image">이미지 없음</div>
+                    <% } %>
+                    <h2>
+                        <% if (search) { %>
+                            <%- content.subject.replace(new RegExp('(' + search + ')', 'gi'), '<strong>$1</strong>') %>
+                        <% } else { %>
+                            <%= content.subject %>
+                        <% } %>
+                    </h2>
+                    <p class="content-preview">
+                        <% const plainText = content.content.replace(/<[^>]*>/g, '').substring(0, 150); %>
+                        <% if (search) { %>
+                            <%- plainText.replace(new RegExp('(' + search + ')', 'gi'), '<strong>$1</strong>') %>...
+                        <% } else { %>
+                            <%= plainText %>...
+                        <% } %>
+                    </p>
+                </article>
+            <% }); %>
+        </div>
+
+        <div class="pagination">
+            <% if (currentPage > 1) { %>
+                <a href="/?page=<%= currentPage - 1 %><%= search ? '&search=' + search : '' %><%= sort !== 'recent' ? '&sort=' + sort : '' %>">이전</a>
+            <% } %>
+            
+            <% for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) { %>
+                <a href="/?page=<%= i %><%= search ? '&search=' + search : '' %><%= sort !== 'recent' ? '&sort=' + sort : '' %>" 
+                   class="<%= i === currentPage ? 'active' : '' %>"><%= i %></a>
+            <% } %>
+            
+            <% if (currentPage < totalPages) { %>
+                <a href="/?page=<%= currentPage + 1 %><%= search ? '&search=' + search : '' %><%= sort !== 'recent' ? '&sort=' + sort : '' %>">다음</a>
+            <% } %>
+        </div>
+    </main>
+
+    <footer>
+        <p>AI로 작성된 글입니다. 삭제 문의: <a href="mailto:today.h.issue@gmail.com">today.h.issue@gmail.com</a></p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 - 콘텐츠 목록</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1>관리자 페이지</h1>
+            <a href="/admin/logout" class="logout-btn">로그아웃</a>
+        </header>
+
+        <div class="admin-search">
+            <form action="/admin/list" method="get">
+                <input type="text" name="search" value="<%= search %>" placeholder="제목 검색">
+                <button type="submit">검색</button>
+            </form>
+        </div>
+
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>제목</th>
+                    <th>작성시간</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% contents.forEach(function(content) { %>
+                    <tr>
+                        <td><%= content.id %></td>
+                        <td><%= content.subject %></td>
+                        <td><%= new Date(content.insert_time).toLocaleString('ko-KR') %></td>
+                        <td>
+                            <a href="/admin/edit/<%= content.id %>" class="btn-edit">수정</a>
+                            <form action="/admin/delete/<%= content.id %>" method="post" style="display:inline;" 
+                                  onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                                <button type="submit" class="btn-delete">삭제</button>
+                            </form>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

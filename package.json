@@ -1,0 +1,22 @@
+{
+  "name": "hissue",
+  "version": "1.0.0",
+  "description": "최근 이슈를 AI가 자세하게 설명해드립니다. 하이 이슈",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "collect": "node scripts/collect-rss.js",
+    "init-db": "node scripts/init-db.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6",
+    "axios": "^1.6.2",
+    "xml2js": "^0.6.2",
+    "dotenv": "^16.3.1",
+    "express-session": "^1.17.3",
+    "cookie-parser": "^1.4.6",
+    "ejs": "^3.1.9"
+  }
+}
