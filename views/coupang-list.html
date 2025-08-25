@@ -3,8 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>쿠팡 가전제품 베스트 - HI! ISSUE!</title>
+    <meta name="description" content="쿠팡 가전제품 베스트 상품 - 실시간 할인 정보와 가격 비교, 로켓배송 가전제품 추천">
+    <meta name="keywords" content="쿠팡 가전제품, 가전제품 베스트, 가전제품 할인, 쿠팡 베스트 상품, 로켓배송 가전, 가전제품 추천, 가전제품 가격비교">
+    <meta property="og:title" content="쿠팡 가전제품 베스트 상품 - HI! ISSUE!">
+    <meta property="og:description" content="실시간 쿠팡 가전제품 베스트 상품 할인 정보와 가격 변동 추적 서비스">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://hissue.kr/coupang">
+    <meta property="og:site_name" content="HI! ISSUE!">
+    <meta property="og:locale" content="ko_KR">
+    
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="쿠팡 가전제품 베스트 상품">
+    <meta name="twitter:description" content="실시간 가전제품 할인 정보와 가격 비교 서비스">
+    
+    <!-- 추가 SEO 메타 태그 -->
+    <meta name="author" content="HI! ISSUE!">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://hissue.kr/coupang">
+    
+    <title>쿠팡 가전제품 베스트 상품 - 실시간 할인 정보 | HI! ISSUE!</title>
     <link rel="stylesheet" href="/css/style.css">
+    
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5588520972347187"
+     crossorigin="anonymous"></script>
     <style>
         .container {
             max-width: 1200px;
@@ -94,10 +117,14 @@
             line-height: 1.4;
         }
         .price-container {
+            margin-bottom: 8px;
+        }
+        .price-gap-container {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 5px;
             margin-bottom: 10px;
+            font-size: 13px;
         }
         .product-price {
             font-size: 20px;
@@ -239,12 +266,15 @@
                             <div class="product-name"><%= product.productName %></div>
                             <div class="price-container">
                                 <div class="product-price"><%= Number(product.productPrice).toLocaleString() %>원</div>
-                                <% if (product.priceGap !== 0) { %>
-                                    <div class="price-gap <%= product.priceGap > 0 ? 'up' : 'down' %>">
+                            </div>
+                            <div class="price-gap-container">
+                                <span style="font-size: 12px; color: #666;">전일 대비 가격 변동률 : </span>
+                                <div class="price-gap <%= product.priceGap > 0 ? 'up' : product.priceGap < 0 ? 'down' : '' %>" style="display: inline-flex;">
+                                    <% if (product.priceGap !== 0) { %>
                                         <span class="arrow"><%= product.priceGap > 0 ? '▲' : '▼' %></span>
-                                        <%= Math.abs(product.priceGap).toFixed(1) %>%
-                                    </div>
-                                <% } %>
+                                    <% } %>
+                                    <%= Math.abs(product.priceGap || 0).toFixed(1) %>%
+                                </div>
                             </div>
                             <div class="badges">
                                 <% if (product.isRocket) { %>

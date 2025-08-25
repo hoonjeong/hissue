@@ -3,9 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= product.productName %> - HI! ISSUE!</title>
+    <meta name="description" content="<%= product.productName %> - 쿠팡 가전제품 실시간 가격 정보, 할인율 <%= product.priceGap ? Math.abs(product.priceGap).toFixed(1) + '%' : '' %>, <%= product.isRocket ? '로켓배송' : '' %> <%= product.isFreeShipping ? '무료배송' : '' %>">
+    <meta name="keywords" content="<%= product.productName %>, 쿠팡 가전제품, 가전제품 가격, 쿠팡 할인, <%= product.isRocket ? '로켓배송' : '' %>, <%= product.isFreeShipping ? '무료배송' : '' %>">
+    <meta property="og:title" content="<%= product.productName %> - <%= Number(product.productPrice).toLocaleString() %>원">
+    <meta property="og:description" content="<%= product.productName %> 실시간 최저가 <%= Number(product.productPrice).toLocaleString() %>원 - 쿠팡 가전제품 베스트 상품">
+    <meta property="og:type" content="product">
+    <meta property="og:url" content="https://hissue.kr/coupang/product/<%= product.productId %>">
+    <meta property="og:site_name" content="HI! ISSUE!">
+    <meta property="og:locale" content="ko_KR">
+    <% if (product.productImage) { %>
+    <meta property="og:image" content="<%= product.productImage %>">
+    <% } %>
+    <meta property="product:price:amount" content="<%= product.productPrice %>">
+    <meta property="product:price:currency" content="KRW">
+    
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<%= product.productName %>">
+    <meta name="twitter:description" content="최저가 <%= Number(product.productPrice).toLocaleString() %>원 - 쿠팡 가전제품">
+    <% if (product.productImage) { %>
+    <meta name="twitter:image" content="<%= product.productImage %>">
+    <% } %>
+    
+    <!-- 추가 SEO 메타 태그 -->
+    <meta name="author" content="HI! ISSUE!">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://hissue.kr/coupang/product/<%= product.productId %>">
+    
+    <title><%= product.productName %> - <%= Number(product.productPrice).toLocaleString() %>원 | 쿠팡 가전제품 베스트 | HI! ISSUE!</title>
     <link rel="stylesheet" href="/css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5588520972347187"
+     crossorigin="anonymous"></script>
     <style>
         .container {
             max-width: 1200px;
@@ -55,9 +86,12 @@
             padding: 20px 0;
         }
         .price-row {
+            margin-bottom: 10px;
+        }
+        .price-gap-info {
             display: flex;
-            align-items: baseline;
-            gap: 15px;
+            align-items: center;
+            gap: 8px;
         }
         .product-price {
             font-size: 32px;
@@ -203,12 +237,15 @@
                     <div class="price-section">
                         <div class="price-row">
                             <div class="product-price"><%= Number(product.productPrice).toLocaleString() %>원</div>
-                            <% if (product.priceGap !== 0) { %>
-                                <div class="price-gap <%= product.priceGap > 0 ? 'up' : 'down' %>">
+                        </div>
+                        <div class="price-gap-info">
+                            <span style="font-size: 14px; color: #666;">전일 대비 가격 변동률 : </span>
+                            <div class="price-gap <%= product.priceGap > 0 ? 'up' : product.priceGap < 0 ? 'down' : '' %>" style="display: inline-flex;">
+                                <% if (product.priceGap !== 0) { %>
                                     <span><%= product.priceGap > 0 ? '▲' : '▼' %></span>
-                                    <%= Math.abs(product.priceGap).toFixed(1) %>%
-                                </div>
-                            <% } %>
+                                <% } %>
+                                <%= Math.abs(product.priceGap || 0).toFixed(1) %>%
+                            </div>
                         </div>
                     </div>
 
@@ -247,58 +284,90 @@
 
     <% if (priceHistory && priceHistory.length > 1) { %>
     <script>
-        const ctx = document.getElementById('priceChart').getContext('2d');
-        const priceData = <%= JSON.stringify(priceHistory.reverse()) %>;
-        
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: priceData.map(item => {
-                    const date = new Date(item.insert_time);
-                    return date.getMonth() + 1 + '/' + date.getDate() + ' ' + 
-                           date.getHours() + ':' + String(date.getMinutes()).padStart(2, '0');
-                }),
-                datasets: [{
-                    label: '가격',
-                    data: priceData.map(item => item.productPrice),
-                    borderColor: '#0073e9',
-                    backgroundColor: 'rgba(0, 115, 233, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#0073e9',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
+        // DOM이 완전히 로드된 후 차트 생성
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('priceChart');
+            if (!canvas) {
+                console.error('Canvas element not found');
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            const priceData = <%- JSON.stringify(priceHistory.reverse()) %>;
+            
+            console.log('Price data:', priceData); // 디버깅용
+            
+            if (priceData && priceData.length > 0) {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: priceData.map(item => {
+                            const date = new Date(item.insert_time);
+                            return (date.getMonth() + 1) + '/' + date.getDate() + ' ' + 
+                                   date.getHours() + ':' + String(date.getMinutes()).padStart(2, '0');
+                        }),
+                        datasets: [{
+                            label: '가격',
+                            data: priceData.map(item => Number(item.productPrice)),
+                            borderColor: '#0073e9',
+                            backgroundColor: 'rgba(0, 115, 233, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#0073e9',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointHoverRadius: 6
+                        }]
                     },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.parsed.y.toLocaleString() + '원';
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.parsed.y.toLocaleString() + '원';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                beginAtZero: false,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value.toLocaleString() + '원';
+                                    }
+                                },
+                                grid: {
+                                    borderDash: [5, 5]
+                                }
                             }
                         }
                     }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        ticks: {
-                            callback: function(value) {
-                                return value.toLocaleString() + '원';
-                            }
-                        }
-                    }
-                }
+                });
             }
         });
+    </script>
+    <% } else { %>
+    <!-- 가격 이력이 부족한 경우 -->
+    <script>
+        console.log('Price history not available or insufficient data');
     </script>
     <% } %>
 </body>
