@@ -202,7 +202,7 @@ app.get('/admin/list', (req, res) => {
 
 // 쿠팡 베스트 상품 리스트 페이지
 app.get('/coupang', (req, res) => {
-    const sort = req.query.sort || 'price_desc';
+    const sort = req.query.sort || 'gap';  // 기본 정렬을 가격변동순으로 변경
     const search = req.query.search || '';
     const isRocket = req.query.rocket === 'true';
     const isFreeShipping = req.query.free === 'true';
@@ -249,10 +249,10 @@ app.get('/coupang', (req, res) => {
                 query += ` ORDER BY productName ASC`;
                 break;
             case 'gap':
-                query += ` ORDER BY priceGap DESC`;
+                query += ` ORDER BY priceGap ASC`;  // 많이 내린순(음수가 더 작은 값)
                 break;
             default:
-                query += ` ORDER BY productPrice DESC`;
+                query += ` ORDER BY priceGap ASC`;  // 기본값도 가격변동순(많이 내린순)
         }
         
         db.all(query, params, (err, products) => {

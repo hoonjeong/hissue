@@ -234,10 +234,10 @@
         <div class="filter-section">
             <form id="filterForm" class="filter-row">
                 <select name="sort" class="sort-select" onchange="applyFilters()">
+                    <option value="gap" <%= sort === 'gap' ? 'selected' : '' %>>가격 변동율순 (할인 많은순)</option>
                     <option value="price_desc" <%= sort === 'price_desc' ? 'selected' : '' %>>가격 높은순</option>
                     <option value="price_asc" <%= sort === 'price_asc' ? 'selected' : '' %>>가격 낮은순</option>
                     <option value="name" <%= sort === 'name' ? 'selected' : '' %>>이름순</option>
-                    <option value="gap" <%= sort === 'gap' ? 'selected' : '' %>>가격 변동율순</option>
                 </select>
                 <div class="checkbox-group">
                     <label class="checkbox-label">
