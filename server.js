@@ -43,23 +43,58 @@ app.get('/', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = 12;
     const offset = (page - 1) * limit;
-    const sort = req.query.sort === 'score' ? 'score DESC' : 'insert_time DESC';
     const search = req.query.search || '';
+    const sortType = req.query.sort;
     
-    let query = `SELECT id, keyword, subject, content, score, insert_time, news_item_picture_1 
+    let query, countQuery, params, countParams;
+    
+    if (sortType === 'score') {
+        // 최근 2일간의 조회수 순으로 정렬
+        const twoDaysAgo = new Date();
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+        const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
+        
+        query = `
+            SELECT c.id, c.keyword, c.subject, c.content, c.score, c.insert_time, c.news_item_picture_1,
+                   COALESCE(v.recent_views, 0) as recent_views
+            FROM HS_CONTENT_TB c
+            LEFT JOIN (
+                SELECT content_id, COUNT(*) as recent_views
+                FROM VIEW_LOG
+                WHERE view_date >= ?
+                GROUP BY content_id
+            ) v ON c.id = v.content_id`;
+        
+        countQuery = `SELECT COUNT(*) as total FROM HS_CONTENT_TB`;
+        params = [twoDaysAgoStr];
+        countParams = [];
+        
+        if (search) {
+            query += ` WHERE c.subject LIKE ? OR c.content LIKE ?`;
+            countQuery += ` WHERE subject LIKE ? OR content LIKE ?`;
+            params.push(`%${search}%`, `%${search}%`);
+            countParams = [`%${search}%`, `%${search}%`];
+        }
+        
+        query += ` ORDER BY recent_views DESC, c.insert_time DESC LIMIT ? OFFSET ?`;
+    } else {
+        // 기본 정렬 (최신순)
+        query = `SELECT id, keyword, subject, content, score, insert_time, news_item_picture_1 
                  FROM HS_CONTENT_TB`;
-    let countQuery = `SELECT COUNT(*) as total FROM HS_CONTENT_TB`;
-    let params = [];
-    let countParams = [];
-    
-    if (search) {
-        query += ` WHERE subject LIKE ? OR content LIKE ?`;
-        countQuery += ` WHERE subject LIKE ? OR content LIKE ?`;
-        params = [`%${search}%`, `%${search}%`];
-        countParams = [`%${search}%`, `%${search}%`];
+        countQuery = `SELECT COUNT(*) as total FROM HS_CONTENT_TB`;
+        params = [];
+        countParams = [];
+        
+        if (search) {
+            query += ` WHERE subject LIKE ? OR content LIKE ?`;
+            countQuery += ` WHERE subject LIKE ? OR content LIKE ?`;
+            params = [`%${search}%`, `%${search}%`];
+            countParams = [`%${search}%`, `%${search}%`];
+        }
+        
+        query += ` ORDER BY insert_time DESC LIMIT ? OFFSET ?`;
     }
     
-    query += ` ORDER BY ${sort} LIMIT ? OFFSET ?`;
     params.push(limit, offset);
     
     db.get(countQuery, countParams, (err, countRow) => {
