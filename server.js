@@ -52,13 +52,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || 'hissue-secret-key-2024',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,  // 세션이 항상 저장되도록 변경
     cookie: { 
         secure: false,
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000
+        maxAge: 30 * 24 * 60 * 60 * 1000  // 30일로 연장
     }
 }));
 
