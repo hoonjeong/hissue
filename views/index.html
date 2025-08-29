@@ -145,17 +145,13 @@
                     // 제목 옆 댓글 수
                     const titleElements = document.querySelectorAll(`.comment-count[data-content-id="${id}"]`);
                     titleElements.forEach(el => {
-                        if (count > 0) {
-                            el.textContent = `(${count})`;
-                        }
+                        el.textContent = `(${count})`;
                     });
                     
                     // 정보란 댓글 수
                     const infoElements = document.querySelectorAll(`.comment-info[data-content-id="${id}"]`);
                     infoElements.forEach(el => {
-                        if (count > 0) {
-                            el.textContent = `댓글: ${count}`;
-                        }
+                        el.textContent = `댓글: ${count}`;
                     });
                 });
             }
