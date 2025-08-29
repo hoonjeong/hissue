@@ -113,9 +113,11 @@
 
                 <!-- 정렬 옵션 -->
                 <div class="comment-sort">
-                    <button class="sort-btn active" data-sort="latest">최신순</button>
-                    <button class="sort-btn" data-sort="likes">좋아요순</button>
-                    <button class="sort-btn" data-sort="dislikes">싫어요순</button>
+                    <a href="#" class="sort-link active" data-sort="latest">최신순</a>
+                    <span class="sort-divider">|</span>
+                    <a href="#" class="sort-link" data-sort="likes">좋아요순</a>
+                    <span class="sort-divider">|</span>
+                    <a href="#" class="sort-link" data-sort="dislikes">싫어요순</a>
                 </div>
 
                 <!-- 댓글 목록 -->
@@ -317,12 +319,13 @@
         }
     });
 
-    // 정렬 버튼
-    document.querySelectorAll('.sort-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentSort = btn.dataset.sort;
+    // 정렬 링크
+    document.querySelectorAll('.sort-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.querySelectorAll('.sort-link').forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            currentSort = link.dataset.sort;
             loadComments(currentSort);
         });
     });
