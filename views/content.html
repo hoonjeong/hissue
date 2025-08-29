@@ -60,7 +60,7 @@
 
     <main>
         <article class="content-detail">
-            <h1><%= content.subject %></h1>
+            <h1><%= content.subject %> <span class="comment-count" id="titleCommentCount" style="color: red; font-size: 16px; font-weight: normal;"></span></h1>
             <div class="content-meta">
                 <% 
                 const insertDate = new Date(content.insert_time);
@@ -73,6 +73,7 @@
                 %>
                 <span class="date">작성일: <%= formattedDate %></span>
                 <span class="views">조회수: <%= content.score %></span>
+                <span class="comment-meta" id="metaCommentCount">댓글수: 0</span>
             </div>
             
             <div class="content-body">
@@ -88,8 +89,248 @@
                     <a href="/content/<%= nextId %>" class="next-link">다음 글</a>
                 <% } %>
             </div>
+
+            <!-- 댓글 섹션 -->
+            <div class="comment-section">
+                <h3 class="comment-title">댓글 <span class="comment-count" id="totalCommentCount">(0)</span></h3>
+                
+                <!-- 댓글 작성 폼 -->
+                <div class="comment-form">
+                    <div class="comment-user-info">
+                        <span class="user-nickname" id="userNickname">로딩중...</span>
+                    </div>
+                    <div class="comment-input-group">
+                        <textarea id="commentText" placeholder="댓글을 입력하세요" rows="3"></textarea>
+                        <button id="submitComment" class="comment-submit-btn">댓글 작성</button>
+                    </div>
+                </div>
+
+                <!-- 베스트 댓글 -->
+                <div id="bestComments" class="best-comments" style="display: none;">
+                    <h4 class="best-comments-title">베스트 댓글</h4>
+                    <div id="bestCommentsList"></div>
+                </div>
+
+                <!-- 정렬 옵션 -->
+                <div class="comment-sort">
+                    <button class="sort-btn active" data-sort="latest">최신순</button>
+                    <button class="sort-btn" data-sort="likes">좋아요순</button>
+                    <button class="sort-btn" data-sort="dislikes">싫어요순</button>
+                </div>
+
+                <!-- 댓글 목록 -->
+                <div id="commentsList" class="comments-list"></div>
+            </div>
         </article>
     </main>
+
+    <script>
+    const contentId = <%= content.id %>;
+    let currentSort = 'latest';
+    let userSessionId = '';
+
+    // 닉네임 가져오기
+    async function loadUserNickname() {
+        try {
+            const response = await fetch('/api/user/nickname');
+            const data = await response.json();
+            if (data.success) {
+                document.getElementById('userNickname').textContent = data.nickname;
+            }
+        } catch (error) {
+            console.error('닉네임 로드 실패:', error);
+        }
+    }
+
+    // 댓글 목록 로드
+    async function loadComments(sort = 'latest') {
+        try {
+            const response = await fetch(`/api/comments/${contentId}?sort=${sort}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                userSessionId = data.sessionId;
+                document.getElementById('totalCommentCount').textContent = `(${data.totalCount})`;
+                document.getElementById('titleCommentCount').textContent = data.totalCount > 0 ? `(${data.totalCount})` : '';
+                document.getElementById('metaCommentCount').textContent = `댓글수: ${data.totalCount}`;
+                
+                // 베스트 댓글 표시
+                if (data.bestComments && data.bestComments.length > 0 && data.bestComments.some(c => c.likes >= 3)) {
+                    displayBestComments(data.bestComments.filter(c => c.likes >= 3));
+                } else {
+                    document.getElementById('bestComments').style.display = 'none';
+                }
+                
+                // 일반 댓글 표시
+                displayComments(data.comments);
+            }
+        } catch (error) {
+            console.error('댓글 로드 실패:', error);
+        }
+    }
+
+    // 베스트 댓글 표시
+    function displayBestComments(comments) {
+        const container = document.getElementById('bestCommentsList');
+        container.innerHTML = '';
+        
+        comments.slice(0, 3).forEach(comment => {
+            container.appendChild(createCommentElement(comment, true));
+        });
+        
+        document.getElementById('bestComments').style.display = 'block';
+    }
+
+    // 댓글 표시
+    function displayComments(comments) {
+        const container = document.getElementById('commentsList');
+        container.innerHTML = '';
+        
+        if (comments.length === 0) {
+            container.innerHTML = '<p class="no-comments">아직 댓글이 없습니다. 첫 댓글을 작성해보세요!</p>';
+            return;
+        }
+        
+        comments.forEach(comment => {
+            container.appendChild(createCommentElement(comment, false));
+        });
+    }
+
+    // 댓글 요소 생성
+    function createCommentElement(comment, isBest) {
+        const div = document.createElement('div');
+        div.className = 'comment-item' + (isBest ? ' best-comment-item' : '');
+        
+        const date = new Date(comment.created_at);
+        const formattedDate = `${date.getFullYear()}.${String(date.getMonth()+1).padStart(2,'0')}.${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+        
+        const isMyComment = comment.session_id === userSessionId;
+        const isLiked = comment.user_vote === 'like';
+        const isDisliked = comment.user_vote === 'dislike';
+        
+        div.innerHTML = `
+            <div class="comment-header">
+                <span class="comment-author">${comment.nickname}</span>
+                <span class="comment-text">${comment.comment_text.replace(/\n/g, '<br>')}</span>
+                ${isMyComment ? `<button class="comment-delete" data-id="${comment.id}">삭제</button>` : ''}
+            </div>
+            <div class="comment-footer">
+                <span class="comment-date">${formattedDate}</span>
+                <div class="comment-actions">
+                    <button class="vote-btn like-btn ${isLiked ? 'active' : ''}" data-id="${comment.id}" data-type="like">
+                        <span class="vote-icon">👍</span>
+                        <span class="vote-count">${comment.likes}</span>
+                    </button>
+                    <button class="vote-btn dislike-btn ${isDisliked ? 'active' : ''}" data-id="${comment.id}" data-type="dislike">
+                        <span class="vote-icon">👎</span>
+                        <span class="vote-count">${comment.dislikes}</span>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        return div;
+    }
+
+    // 댓글 작성
+    document.getElementById('submitComment').addEventListener('click', async () => {
+        const commentText = document.getElementById('commentText').value.trim();
+        
+        if (!commentText) {
+            alert('댓글 내용을 입력해주세요.');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/comments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contentId: contentId,
+                    contentType: 'news',
+                    commentText: commentText
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById('commentText').value = '';
+                loadComments(currentSort);
+            } else {
+                alert(data.error || '댓글 작성에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('댓글 작성 실패:', error);
+            alert('댓글 작성에 실패했습니다.');
+        }
+    });
+
+    // 댓글 삭제
+    document.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('comment-delete')) {
+            if (!confirm('댓글을 삭제하시겠습니까?')) return;
+            
+            const commentId = e.target.dataset.id;
+            
+            try {
+                const response = await fetch(`/api/comments/${commentId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadComments(currentSort);
+                } else {
+                    alert(data.error || '댓글 삭제에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('댓글 삭제 실패:', error);
+                alert('댓글 삭제에 실패했습니다.');
+            }
+        }
+    });
+
+    // 좋아요/싫어요
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.vote-btn')) {
+            const btn = e.target.closest('.vote-btn');
+            const commentId = btn.dataset.id;
+            const voteType = btn.dataset.type;
+            
+            try {
+                const response = await fetch(`/api/comments/${commentId}/vote`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ voteType })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadComments(currentSort);
+                }
+            } catch (error) {
+                console.error('투표 실패:', error);
+            }
+        }
+    });
+
+    // 정렬 버튼
+    document.querySelectorAll('.sort-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentSort = btn.dataset.sort;
+            loadComments(currentSort);
+        });
+    });
+
+    // 초기 로드
+    loadUserNickname();
+    loadComments();
+    </script>
 
     <footer>
         <p>AI로 작성된 글입니다. 삭제 문의: <a href="mailto:today.h.issue@gmail.com">today.h.issue@gmail.com</a></p>

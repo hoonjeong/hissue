@@ -13,6 +13,41 @@ const PORT = process.env.PORT || 3000;
 const dbPath = path.join(__dirname, 'hissue.db');
 const db = new sqlite3.Database(dbPath);
 
+// 랜덤 한글 닉네임 생성 함수
+function generateRandomNickname() {
+    const first = ['가', '나', '다', '라', '마', '바', '사', '아', '자', '차', '카', '타', '파', '하'];
+    const middle = ['람', '림', '롬', '룸', '렘', '밤', '빔', '봄', '붐', '뱀', '샘', '심', '솜', '숨', '슴'];
+    const last = ['비', '디', '기', '니', '리', '미', '시', '이', '지', '치', '키', '티', '피', '히', '위'];
+    
+    const randomFirst = first[Math.floor(Math.random() * first.length)];
+    const randomMiddle = middle[Math.floor(Math.random() * middle.length)];
+    const randomLast = last[Math.floor(Math.random() * last.length)];
+    
+    return `익명의${randomFirst}${randomMiddle}${randomLast}`;
+}
+
+// 세션별 닉네임 가져오기 또는 생성
+async function getUserNickname(sessionId) {
+    return new Promise((resolve, reject) => {
+        db.get('SELECT nickname FROM USER_NICKNAME WHERE session_id = ?', [sessionId], (err, row) => {
+            if (err) {
+                reject(err);
+            } else if (row) {
+                resolve(row.nickname);
+            } else {
+                const nickname = generateRandomNickname();
+                db.run('INSERT INTO USER_NICKNAME (session_id, nickname) VALUES (?, ?)', 
+                    [sessionId, nickname], 
+                    (err) => {
+                        if (err) reject(err);
+                        else resolve(nickname);
+                    }
+                );
+            }
+        });
+    });
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -431,6 +466,296 @@ app.post('/admin/force-update', async (req, res) => {
             error: error.message || '업데이트 실행 중 오류가 발생했습니다' 
         });
     }
+});
+
+// 댓글 API 엔드포인트들
+
+// 댓글 목록 가져오기
+app.get('/api/comments/:contentId', async (req, res) => {
+    const contentId = req.params.contentId;
+    const contentType = req.query.type || 'news';
+    const sortType = req.query.sort || 'latest';
+    const sessionId = req.sessionID;
+    
+    try {
+        // 베스트 댓글 3개 가져오기
+        const bestComments = await new Promise((resolve, reject) => {
+            db.all(`
+                SELECT c.*, 
+                       (SELECT vote_type FROM COMMENT_VOTES WHERE comment_id = c.id AND session_id = ?) as user_vote
+                FROM COMMENTS c
+                WHERE c.content_id = ? AND c.content_type = ? AND c.deleted_at IS NULL
+                ORDER BY c.likes DESC
+                LIMIT 3
+            `, [sessionId, contentId, contentType], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+        
+        // 정렬 기준 설정
+        let orderBy = 'c.created_at DESC';
+        if (sortType === 'likes') {
+            orderBy = 'c.likes DESC, c.created_at DESC';
+        } else if (sortType === 'dislikes') {
+            orderBy = 'c.dislikes DESC, c.created_at DESC';
+        }
+        
+        // 일반 댓글 가져오기
+        const comments = await new Promise((resolve, reject) => {
+            db.all(`
+                SELECT c.*,
+                       (SELECT vote_type FROM COMMENT_VOTES WHERE comment_id = c.id AND session_id = ?) as user_vote
+                FROM COMMENTS c
+                WHERE c.content_id = ? AND c.content_type = ? AND c.deleted_at IS NULL
+                ORDER BY ${orderBy}
+            `, [sessionId, contentId, contentType], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+        
+        // 댓글 총 개수
+        const totalCount = await new Promise((resolve, reject) => {
+            db.get('SELECT COUNT(*) as count FROM COMMENTS WHERE content_id = ? AND content_type = ? AND deleted_at IS NULL', 
+                [contentId, contentType], (err, row) => {
+                if (err) reject(err);
+                else resolve(row.count);
+            });
+        });
+        
+        res.json({
+            success: true,
+            bestComments,
+            comments,
+            totalCount,
+            sessionId
+        });
+    } catch (error) {
+        console.error('댓글 조회 실패:', error);
+        res.status(500).json({ success: false, error: '댓글 조회 실패' });
+    }
+});
+
+// 댓글 작성
+app.post('/api/comments', async (req, res) => {
+    const { contentId, contentType, commentText } = req.body;
+    const sessionId = req.sessionID;
+    
+    if (!commentText || commentText.trim().length === 0) {
+        return res.status(400).json({ success: false, error: '댓글 내용을 입력해주세요.' });
+    }
+    
+    try {
+        const nickname = await getUserNickname(sessionId);
+        
+        db.run(`
+            INSERT INTO COMMENTS (content_id, content_type, session_id, nickname, comment_text)
+            VALUES (?, ?, ?, ?, ?)
+        `, [contentId, contentType || 'news', sessionId, nickname, commentText.trim()], function(err) {
+            if (err) {
+                console.error('댓글 작성 실패:', err);
+                res.status(500).json({ success: false, error: '댓글 작성 실패' });
+            } else {
+                res.json({ 
+                    success: true, 
+                    commentId: this.lastID,
+                    nickname 
+                });
+            }
+        });
+    } catch (error) {
+        console.error('댓글 작성 실패:', error);
+        res.status(500).json({ success: false, error: '댓글 작성 실패' });
+    }
+});
+
+// 댓글 삭제
+app.delete('/api/comments/:commentId', (req, res) => {
+    const commentId = req.params.commentId;
+    const sessionId = req.sessionID;
+    
+    // 본인 댓글인지 확인
+    db.get('SELECT session_id FROM COMMENTS WHERE id = ?', [commentId], (err, row) => {
+        if (err) {
+            return res.status(500).json({ success: false, error: '서버 오류' });
+        }
+        
+        if (!row) {
+            return res.status(404).json({ success: false, error: '댓글을 찾을 수 없습니다.' });
+        }
+        
+        if (row.session_id !== sessionId) {
+            return res.status(403).json({ success: false, error: '삭제 권한이 없습니다.' });
+        }
+        
+        // 소프트 삭제
+        db.run('UPDATE COMMENTS SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', [commentId], (err) => {
+            if (err) {
+                res.status(500).json({ success: false, error: '댓글 삭제 실패' });
+            } else {
+                res.json({ success: true });
+            }
+        });
+    });
+});
+
+// 댓글 좋아요/싫어요
+app.post('/api/comments/:commentId/vote', (req, res) => {
+    const commentId = req.params.commentId;
+    const { voteType } = req.body;
+    const sessionId = req.sessionID;
+    
+    if (!['like', 'dislike'].includes(voteType)) {
+        return res.status(400).json({ success: false, error: '잘못된 투표 타입' });
+    }
+    
+    // 이미 투표했는지 확인
+    db.get('SELECT vote_type FROM COMMENT_VOTES WHERE comment_id = ? AND session_id = ?', 
+        [commentId, sessionId], (err, row) => {
+        if (err) {
+            return res.status(500).json({ success: false, error: '서버 오류' });
+        }
+        
+        if (row) {
+            // 이미 투표한 경우
+            if (row.vote_type === voteType) {
+                // 같은 투표 취소
+                db.run('DELETE FROM COMMENT_VOTES WHERE comment_id = ? AND session_id = ?', 
+                    [commentId, sessionId], (err) => {
+                    if (err) {
+                        return res.status(500).json({ success: false, error: '투표 취소 실패' });
+                    }
+                    
+                    // 카운트 감소
+                    const column = voteType === 'like' ? 'likes' : 'dislikes';
+                    db.run(`UPDATE COMMENTS SET ${column} = ${column} - 1 WHERE id = ?`, [commentId], (err) => {
+                        if (err) {
+                            return res.status(500).json({ success: false, error: '카운트 업데이트 실패' });
+                        }
+                        res.json({ success: true, action: 'cancelled' });
+                    });
+                });
+            } else {
+                // 다른 투표로 변경
+                db.run('UPDATE COMMENT_VOTES SET vote_type = ? WHERE comment_id = ? AND session_id = ?', 
+                    [voteType, commentId, sessionId], (err) => {
+                    if (err) {
+                        return res.status(500).json({ success: false, error: '투표 변경 실패' });
+                    }
+                    
+                    // 카운트 업데이트
+                    const increaseColumn = voteType === 'like' ? 'likes' : 'dislikes';
+                    const decreaseColumn = voteType === 'like' ? 'dislikes' : 'likes';
+                    db.run(`UPDATE COMMENTS SET ${increaseColumn} = ${increaseColumn} + 1, ${decreaseColumn} = ${decreaseColumn} - 1 WHERE id = ?`, 
+                        [commentId], (err) => {
+                        if (err) {
+                            return res.status(500).json({ success: false, error: '카운트 업데이트 실패' });
+                        }
+                        res.json({ success: true, action: 'changed' });
+                    });
+                });
+            }
+        } else {
+            // 새로운 투표
+            db.run('INSERT INTO COMMENT_VOTES (comment_id, session_id, vote_type) VALUES (?, ?, ?)', 
+                [commentId, sessionId, voteType], (err) => {
+                if (err) {
+                    return res.status(500).json({ success: false, error: '투표 실패' });
+                }
+                
+                // 카운트 증가
+                const column = voteType === 'like' ? 'likes' : 'dislikes';
+                db.run(`UPDATE COMMENTS SET ${column} = ${column} + 1 WHERE id = ?`, [commentId], (err) => {
+                    if (err) {
+                        return res.status(500).json({ success: false, error: '카운트 업데이트 실패' });
+                    }
+                    res.json({ success: true, action: 'added' });
+                });
+            });
+        }
+    });
+});
+
+// 사용자 닉네임 가져오기
+app.get('/api/user/nickname', async (req, res) => {
+    const sessionId = req.sessionID;
+    
+    try {
+        const nickname = await getUserNickname(sessionId);
+        res.json({ success: true, nickname });
+    } catch (error) {
+        console.error('닉네임 조회 실패:', error);
+        res.status(500).json({ success: false, error: '닉네임 조회 실패' });
+    }
+});
+
+// 관리자용 최근 댓글 목록
+app.get('/admin/api/recent-comments', (req, res) => {
+    if (!req.session.isAdmin) {
+        return res.status(403).json({ success: false, error: '권한이 없습니다.' });
+    }
+    
+    db.all(`
+        SELECT c.*, h.subject as content_subject
+        FROM COMMENTS c
+        LEFT JOIN HS_CONTENT_TB h ON c.content_id = h.id
+        WHERE c.deleted_at IS NULL
+        ORDER BY c.created_at DESC
+        LIMIT 50
+    `, (err, rows) => {
+        if (err) {
+            console.error('최근 댓글 조회 실패:', err);
+            res.status(500).json({ success: false, error: '댓글 조회 실패' });
+        } else {
+            res.json({ success: true, comments: rows });
+        }
+    });
+});
+
+// 관리자용 댓글 삭제
+app.delete('/admin/api/comments/:commentId', (req, res) => {
+    if (!req.session.isAdmin) {
+        return res.status(403).json({ success: false, error: '권한이 없습니다.' });
+    }
+    
+    const commentId = req.params.commentId;
+    
+    db.run('UPDATE COMMENTS SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', [commentId], (err) => {
+        if (err) {
+            res.status(500).json({ success: false, error: '댓글 삭제 실패' });
+        } else {
+            res.json({ success: true });
+        }
+    });
+});
+
+// 댓글 수 가져오기 (여러 콘텐츠용)
+app.post('/api/comments/counts', (req, res) => {
+    const { contentIds } = req.body;
+    
+    if (!contentIds || !Array.isArray(contentIds)) {
+        return res.status(400).json({ success: false, error: '잘못된 요청' });
+    }
+    
+    const placeholders = contentIds.map(() => '?').join(',');
+    db.all(`
+        SELECT content_id, COUNT(*) as count 
+        FROM COMMENTS 
+        WHERE content_id IN (${placeholders}) AND deleted_at IS NULL
+        GROUP BY content_id
+    `, contentIds, (err, rows) => {
+        if (err) {
+            console.error('댓글 수 조회 실패:', err);
+            res.status(500).json({ success: false, error: '댓글 수 조회 실패' });
+        } else {
+            const counts = {};
+            rows.forEach(row => {
+                counts[row.content_id] = row.count;
+            });
+            res.json({ success: true, counts });
+        }
+    });
 });
 
 app.get('/sitemap.xml', (req, res) => {

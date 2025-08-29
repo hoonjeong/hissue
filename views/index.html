@@ -75,6 +75,7 @@
                         <% } else { %>
                             <%= content.subject %>
                         <% } %>
+                        <span class="comment-count" data-content-id="<%= content.id %>" style="color: red; font-size: 14px; font-weight: normal;"></span>
                     </h2>
                     <div class="content-info">
                         <% 
@@ -86,7 +87,7 @@
                         const minutes = String(insertDate.getMinutes()).padStart(2, '0');
                         const formattedDate = `${year}.${month}.${day} ${hours}:${minutes}`;
                         %>
-                        작성일: <%= formattedDate %> 조회수: <%= content.score || 0 %>
+                        작성일: <%= formattedDate %> 조회수: <%= content.score || 0 %> <span class="comment-info" data-content-id="<%= content.id %>"></span>
                     </div>
                     <p class="content-preview">
                         <% const plainText = content.content.replace(/<[^>]*>/g, '').substring(0, 150); %>
@@ -119,5 +120,52 @@
     <footer>
         <p>AI로 작성된 글입니다. 삭제 문의: <a href="mailto:today.h.issue@gmail.com">today.h.issue@gmail.com</a></p>
     </footer>
+
+    <script>
+    // 댓글 수 로드
+    async function loadCommentCounts() {
+        const contentElements = document.querySelectorAll('[data-content-id]');
+        const contentIds = [...new Set(Array.from(contentElements).map(el => el.dataset.contentId))];
+        
+        if (contentIds.length === 0) return;
+        
+        try {
+            const response = await fetch('/api/comments/counts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contentIds })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                contentIds.forEach(id => {
+                    const count = data.counts[id] || 0;
+                    
+                    // 제목 옆 댓글 수
+                    const titleElements = document.querySelectorAll(`.comment-count[data-content-id="${id}"]`);
+                    titleElements.forEach(el => {
+                        if (count > 0) {
+                            el.textContent = `(${count})`;
+                        }
+                    });
+                    
+                    // 정보란 댓글 수
+                    const infoElements = document.querySelectorAll(`.comment-info[data-content-id="${id}"]`);
+                    infoElements.forEach(el => {
+                        if (count > 0) {
+                            el.textContent = `댓글: ${count}`;
+                        }
+                    });
+                });
+            }
+        } catch (error) {
+            console.error('댓글 수 로드 실패:', error);
+        }
+    }
+    
+    // 페이지 로드 시 댓글 수 불러오기
+    document.addEventListener('DOMContentLoaded', loadCommentCounts);
+    </script>
 </body>
 </html>

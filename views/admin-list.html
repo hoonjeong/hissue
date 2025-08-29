@@ -58,6 +58,14 @@
                 <% }); %>
             </tbody>
         </table>
+
+        <!-- 최근 댓글 섹션 -->
+        <div class="admin-comments-section">
+            <h2>최근 댓글 관리</h2>
+            <div id="recentComments" class="recent-comments-list">
+                <p>댓글을 불러오는 중...</p>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -96,6 +104,76 @@
                 }
             }
         }
+
+        // 최근 댓글 로드
+        async function loadRecentComments() {
+            try {
+                const response = await fetch('/admin/api/recent-comments');
+                const data = await response.json();
+                
+                if (data.success && data.comments) {
+                    const container = document.getElementById('recentComments');
+                    
+                    if (data.comments.length === 0) {
+                        container.innerHTML = '<p>아직 댓글이 없습니다.</p>';
+                        return;
+                    }
+                    
+                    let html = '<table class="admin-table">';
+                    html += '<thead><tr><th>ID</th><th>게시글</th><th>작성자</th><th>댓글 내용</th><th>좋아요</th><th>싫어요</th><th>작성시간</th><th>관리</th></tr></thead>';
+                    html += '<tbody>';
+                    
+                    data.comments.forEach(comment => {
+                        const date = new Date(comment.created_at);
+                        const formattedDate = `${date.getFullYear()}.${String(date.getMonth()+1).padStart(2,'0')}.${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+                        
+                        html += `<tr>
+                            <td>${comment.id}</td>
+                            <td><a href="/content/${comment.content_id}" target="_blank">${comment.content_subject || '제목 없음'}</a></td>
+                            <td>${comment.nickname}</td>
+                            <td>${comment.comment_text.length > 50 ? comment.comment_text.substring(0, 50) + '...' : comment.comment_text}</td>
+                            <td>${comment.likes}</td>
+                            <td>${comment.dislikes}</td>
+                            <td>${formattedDate}</td>
+                            <td>
+                                <button class="btn-delete" onclick="deleteComment(${comment.id})">삭제</button>
+                            </td>
+                        </tr>`;
+                    });
+                    
+                    html += '</tbody></table>';
+                    container.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('댓글 로드 실패:', error);
+                document.getElementById('recentComments').innerHTML = '<p>댓글을 불러오는데 실패했습니다.</p>';
+            }
+        }
+
+        // 댓글 삭제
+        async function deleteComment(commentId) {
+            if (!confirm('이 댓글을 삭제하시겠습니까?')) return;
+            
+            try {
+                const response = await fetch(`/admin/api/comments/${commentId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('댓글이 삭제되었습니다.');
+                    loadRecentComments();
+                } else {
+                    alert('댓글 삭제에 실패했습니다: ' + (data.error || '알 수 없는 오류'));
+                }
+            } catch (error) {
+                alert('댓글 삭제 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        // 페이지 로드 시 댓글 목록 로드
+        document.addEventListener('DOMContentLoaded', loadRecentComments);
     </script>
 </body>
 </html>
