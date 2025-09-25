@@ -271,57 +271,68 @@ async function checkDuplicate(keyword) {
 async function processRSSItems() {
     const items = await fetchRSSFeed();
     console.log(`총 ${items.length}개의 RSS 항목을 가져왔습니다.`);
-    
+
     for (const item of items) {
         try {
             const keyword = item.title[0];
-            
+
             const isDuplicate = await checkDuplicate(keyword);
             if (isDuplicate) {
                 console.log(`이미 처리된 키워드: ${keyword}`);
                 continue;
             }
-            
+
             const newsItems = item['ht:news_item'] || [];
             if (newsItems.length < 3) {
                 console.log(`뉴스 항목 부족: ${keyword}`);
                 continue;
             }
-            
+
             const titles = [];
             const pictures = [];
             const sources = [];
-            
+
             for (let i = 0; i < 3; i++) {
                 titles.push(newsItems[i]['ht:news_item_title'][0]);
                 pictures.push(newsItems[i]['ht:news_item_picture'] ? newsItems[i]['ht:news_item_picture'][0] : '');
                 sources.push(newsItems[i]['ht:news_item_source'] ? newsItems[i]['ht:news_item_source'][0] : '');
             }
-            
+
             console.log(`처리 중: ${keyword}`);
             const aiResult = await generateContent(keyword, titles);
-            
+
             if (aiResult) {
-                const formatted = formatContent(aiResult.json, pictures, sources);
-                
-                await saveToDatabase({
-                    keyword,
-                    titles,
-                    pictures,
-                    sources,
-                    prompt: aiResult.prompt,
-                    subject: formatted.subject,
-                    content: formatted.content,
-                    metaDescription: formatted.metaDescription
-                });
-                
+                try {
+                    const formatted = formatContent(aiResult.json, pictures, sources);
+
+                    await saveToDatabase({
+                        keyword,
+                        titles,
+                        pictures,
+                        sources,
+                        prompt: aiResult.prompt,
+                        subject: formatted.subject,
+                        content: formatted.content,
+                        metaDescription: formatted.metaDescription
+                    });
+
+                    console.log(`✓ 저장 완료: ${keyword}`);
+                } catch (dbError) {
+                    console.error(`❌ DB 저장 실패 (${keyword}):`, dbError.message);
+                    console.log(`⏭️ 다음 키워드로 이동: ${keyword}`);
+                }
+
                 await new Promise(resolve => setTimeout(resolve, 2000));
+            } else {
+                console.log(`❌ AI 콘텐츠 생성 실패: ${keyword}`);
+                console.log(`⏭️ 다음 키워드로 이동: ${keyword}`);
             }
         } catch (error) {
-            console.error(`항목 처리 실패:`, error);
+            console.error(`❌ 항목 처리 실패 (${item.title ? item.title[0] : '알 수 없는 키워드'}):`, error.message);
+            console.log(`⏭️ 다음 항목으로 이동`);
         }
     }
-    
+
     console.log('RSS 수집 및 처리 완료');
     db.close();
 }
