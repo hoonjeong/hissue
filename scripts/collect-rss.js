@@ -309,7 +309,7 @@ async function processRSSItems() {
             console.log(`처리 중: ${keyword}`);
             const aiResult = await generateContent(keyword, titles);
 
-            if (aiResult) {
+            if (aiResult && aiResult.json && aiResult.json.title && aiResult.json.sections && aiResult.json.sections.length > 0) {
                 try {
                     const formatted = formatContent(aiResult.json, pictures, sources);
 
@@ -318,6 +318,7 @@ async function processRSSItems() {
                         titles,
                         pictures,
                         sources,
+                        urls,
                         prompt: aiResult.prompt,
                         subject: formatted.subject,
                         content: formatted.content,
@@ -332,7 +333,7 @@ async function processRSSItems() {
 
                 await new Promise(resolve => setTimeout(resolve, 2000));
             } else {
-                console.log(`❌ AI 콘텐츠 생성 실패: ${keyword}`);
+                console.log(`❌ AI 콘텐츠 생성 실패: ${keyword} - 유효하지 않은 응답`);
                 console.log(`⏭️ 다음 키워드로 이동: ${keyword}`);
             }
         } catch (error) {
