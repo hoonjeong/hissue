@@ -135,13 +135,21 @@ async function generateContent(keyword, titles, retries = 3) {
 - 전문지식보다는 일반 대중이 이해하기 쉬운 언어로 작성하세요
 - 리스트, 볼드체 등을 활용하여 가독성을 높이세요
 
-### **기계적 표현 금지 지침:**
-- 대괄호 [...]로 둘러싸인 기계적 표현은 절대 사용하지 마세요 (예: [이미지 위치], [링크 설명], [키워드 삽입] 등)
-- 모든 내용은 구체적이고 실제적인 표현으로 작성하세요
-- "여기에 이미지를 삽입하세요", "링크를 추가하세요" 같은 지시문은 포함하지 마세요
-- Alt text는 실제 이미지를 묘사하는 구체적인 설명으로 작성하세요
-- 외부 링크는 실제 존재하는 언론사나 기관명을 명시하세요
-- 모든 텍스트는 독자가 읽을 최종 콘텐츠 형태로 완성하여 작성하세요
+### **⚠️ 절대 금지 사항 (CRITICAL REQUIREMENTS):**
+**1. 대괄호 사용 절대 금지:**
+- 어떤 경우에도 대괄호 [ ] 를 사용하지 마세요
+- [이미지], [링크], [출처], [키워드], [설명] 등 모든 대괄호 표현 금지
+- 대괄호가 포함된 어떤 텍스트도 절대 생성하지 마세요
+
+**2. 메타 지시문 금지:**
+- "여기에 이미지를 삽입하세요" 같은 지시문 절대 금지
+- "링크를 추가하세요", "이미지 위치" 같은 메타 설명 금지
+- 모든 텍스트는 실제 독자가 읽을 완성된 콘텐츠여야 함
+
+**3. 콘텐츠만 포함:**
+- sections의 content는 순수한 본문 내용만 포함
+- 이미지나 링크에 대한 언급은 절대 금지
+- 독자가 직접 읽을 수 있는 완성된 문장만 작성
 
 ### **[프롬프트 종료]**`;
 
@@ -175,6 +183,38 @@ async function generateContent(keyword, titles, retries = 3) {
                         .replace(/\t/g, '\\t');
 
                     const parsed = JSON.parse(cleanedJson);
+
+                    // 대괄호 및 메타 지시문 제거 함수
+                    function cleanBrackets(text) {
+                        if (!text) return text;
+                        return text
+                            // 대괄호와 그 안의 내용 제거 (이미지, 링크 등)
+                            .replace(/\[[^\]]*\]/g, '')
+                            // 메타 지시문 제거
+                            .replace(/여기에.*?삽입.*?세요\.?/g, '')
+                            .replace(/.*?이미지.*?삽입.*?위치.*?/g, '')
+                            .replace(/.*?링크.*?추가.*?세요\.?/g, '')
+                            .replace(/.*?링크.*?삽입.*?위치.*?/g, '')
+                            // 연속된 공백이나 줄바꿈 정리
+                            .replace(/\s+/g, ' ')
+                            .replace(/\n\s*\n/g, '\n')
+                            .trim();
+                    }
+
+                    // 모든 텍스트 콘텐츠에서 대괄호 제거
+                    if (parsed.title) parsed.title = cleanBrackets(parsed.title);
+                    if (parsed.summary) parsed.summary = cleanBrackets(parsed.summary);
+                    if (parsed.metaDescription) parsed.metaDescription = cleanBrackets(parsed.metaDescription);
+
+                    // sections 내용 정리
+                    if (parsed.sections && Array.isArray(parsed.sections)) {
+                        parsed.sections = parsed.sections.map(section => ({
+                            ...section,
+                            subtitle: cleanBrackets(section.subtitle),
+                            content: cleanBrackets(section.content)
+                        }));
+                    }
+
                     // 새로운 구조에 맞춰 검증 및 기본값 설정
                     if (!parsed.metaDescription) parsed.metaDescription = parsed.summary || "최신 이슈 분석";
                     if (!parsed.imagePositions) parsed.imagePositions = [];
