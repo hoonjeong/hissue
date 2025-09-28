@@ -437,7 +437,7 @@ app.post('/admin/force-update', async (req, res) => {
         console.log('강제 업데이트 시작...');
         const { stdout, stderr } = await execPromise('node scripts/collect-rss.js', {
             cwd: __dirname,
-            timeout: 300000 // 5분 타임아웃
+            timeout: 1800000 // 30분 타임아웃
         });
         
         if (stderr) {

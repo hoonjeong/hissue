@@ -23,7 +23,7 @@ async function fetchRSSFeed() {
     }
 }
 
-async function generateContent(keyword, titles) {
+async function generateContent(keyword, titles, retries = 3) {
     const prompt = `### **[프롬프트 시작]**
 
 **1. 역할 정의 (Role Assignment)**
@@ -145,64 +145,86 @@ async function generateContent(keyword, titles) {
 
 ### **[프롬프트 종료]**`;
 
-    try {
-        const response = await axios.post(GEMINI_API_URL, {
-            contents: [{
-                parts: [{
-                    text: prompt
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            console.log(`${keyword} AI 생성 시도 ${attempt}/${retries}`);
+            const response = await axios.post(GEMINI_API_URL, {
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
                 }]
-            }]
-        }, {
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            timeout: 0  // 무제한 대기 (timeout 비활성화)
-        });
+            }, {
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                timeout: 0  // 무제한 대기 (timeout 비활성화)
+            });
 
-        const generatedText = response.data.candidates[0].content.parts[0].text;
-        
-        // JSON 추출 (더 안전한 방법)
-        const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            try {
-                // 문제가 되는 문자 정리
-                let cleanedJson = jsonMatch[0]
-                    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // 제어 문자 제거
-                    .replace(/\r\n/g, '\\n') // 줄바꿈 처리
-                    .replace(/\n/g, '\\n')
-                    .replace(/\t/g, '\\t');
-                
-                const parsed = JSON.parse(cleanedJson);
-                // 새로운 구조에 맞춰 검증 및 기본값 설정
-                if (!parsed.metaDescription) parsed.metaDescription = parsed.summary || "최신 이슈 분석";
-                if (!parsed.imagePositions) parsed.imagePositions = [];
-                if (!parsed.externalLinks) parsed.externalLinks = [];
+            const generatedText = response.data.candidates[0].content.parts[0].text;
 
-                return {
-                    json: parsed,
-                    prompt: prompt
-                };
-            } catch (parseError) {
-                console.error('JSON 파싱 오류:', parseError);
-                console.error('원본 텍스트:', generatedText);
-                // 기본 구조 반환
-                return {
-                    json: {
-                        title: titles[0] || "제목",
-                        summary: "AI 요약 생성 실패",
-                        sections: [
-                            { subtitle: "내용", content: "콘텐츠 생성 중 오류가 발생했습니다." }
-                        ]
-                    },
-                    prompt: prompt
-                };
+            // JSON 추출 (더 안전한 방법)
+            const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    // 문제가 되는 문자 정리
+                    let cleanedJson = jsonMatch[0]
+                        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // 제어 문자 제거
+                        .replace(/\r\n/g, '\\n') // 줄바꿈 처리
+                        .replace(/\n/g, '\\n')
+                        .replace(/\t/g, '\\t');
+
+                    const parsed = JSON.parse(cleanedJson);
+                    // 새로운 구조에 맞춰 검증 및 기본값 설정
+                    if (!parsed.metaDescription) parsed.metaDescription = parsed.summary || "최신 이슈 분석";
+                    if (!parsed.imagePositions) parsed.imagePositions = [];
+                    if (!parsed.externalLinks) parsed.externalLinks = [];
+
+                    return {
+                        json: parsed,
+                        prompt: prompt
+                    };
+                } catch (parseError) {
+                    console.error(`${keyword} JSON 파싱 오류 (시도 ${attempt}/${retries}):`, parseError);
+                    if (attempt === retries) {
+                        // 마지막 시도에서도 실패하면 기본 구조 반환
+                        return {
+                            json: {
+                                title: titles[0] || "제목",
+                                summary: "AI 요약 생성 실패",
+                                sections: [
+                                    { subtitle: "내용", content: "콘텐츠 생성 중 오류가 발생했습니다." }
+                                ]
+                            },
+                            prompt: prompt
+                        };
+                    }
+                    // 다음 시도를 위해 continue
+                    continue;
+                }
+            }
+
+            // 성공적으로 응답을 받았지만 JSON을 찾을 수 없는 경우
+            throw new Error('JSON 형식을 찾을 수 없음');
+
+        } catch (error) {
+            console.error(`${keyword} AI 콘텐츠 생성 실패 (시도 ${attempt}/${retries}):`, error.message);
+
+            // 503 Service Unavailable이나 네트워크 에러인 경우 재시도
+            if (attempt < retries && (error.response?.status === 503 || error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT')) {
+                console.log(`${keyword} ${error.response?.status || error.code} 에러로 ${5 * attempt}초 후 재시도...`);
+                await new Promise(resolve => setTimeout(resolve, 5000 * attempt)); // 지수적 백오프
+                continue;
+            }
+
+            // 마지막 시도이거나 재시도할 수 없는 에러
+            if (attempt === retries) {
+                return null;
             }
         }
-        throw new Error('JSON 형식을 찾을 수 없음');
-    } catch (error) {
-        console.error('AI 콘텐츠 생성 실패:', error);
-        return null;
     }
+
+    return null;
 }
 
 function formatContent(aiResponse, pictures, sources) {
@@ -300,11 +322,13 @@ async function processRSSItems() {
             const titles = [];
             const pictures = [];
             const sources = [];
+            const urls = [];
 
             for (let i = 0; i < 3; i++) {
                 titles.push(newsItems[i]['ht:news_item_title'][0]);
                 pictures.push(newsItems[i]['ht:news_item_picture'] ? newsItems[i]['ht:news_item_picture'][0] : '');
                 sources.push(newsItems[i]['ht:news_item_source'] ? newsItems[i]['ht:news_item_source'][0] : '');
+                urls.push(newsItems[i]['ht:news_item_url'] ? newsItems[i]['ht:news_item_url'][0] : '');
             }
 
             console.log(`처리 중: ${keyword}`);
