@@ -155,7 +155,8 @@ async function generateContent(keyword, titles) {
         }, {
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            timeout: 0  // 무제한 대기 (timeout 비활성화)
         });
 
         const generatedText = response.data.candidates[0].content.parts[0].text;
